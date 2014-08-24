@@ -1,0 +1,88 @@
+---
+title: "Weight Lifting Machine Learning"
+author: "Michael Liquori"
+date: "Sunday, August 24, 2014"
+output: html_document
+---
+##Executive Summary
+We attempt to answer one question:
+
+**1. Can we predict whether weightlifting exercises are done correctly or not using the motion-data available?**
+
+In order to accomplish this we apply Random Forest modeling to the Weight Lifting Exercise Dataset available at http://groupware.les.inf.puc-rio.br/har. This model was decided to be the best by the original authors of the data, who state that, "because of the characteristic noise in the sensor data, we used a Random Forest approach." (http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf)
+
+By doing appropriate pre-processing and using a random forest model we were able to achieve **99.6% accuracy on a self-created testing dataset, and 100% accuracy on the 20 assigned test datapoints.**
+
+##Pre-Processing
+Read in the data:
+```{r}
+training<-read.csv("pml-training.csv")
+testing<-read.csv("pml-testing.csv")
+```
+Check for missing data (NAs):
+```{r}
+sumNA<-function(x){
+  sum(is.na(x))
+}
+x<-apply(training,2,sumNA)
+barplot(table(x),border="blue", density=c(20:1),xlab="# of NAs",ylab="# of Variables")
+```
+
+Since so many columns (variables) are almost entirely NA, we will eliminate those columns:
+```{r}
+train1 <- training[,which(apply(training,2,sumNA)==0)]
+dim(train1)
+```
+
+Then, we remove all non-motion data, including non-numeric variables and timestamps, and finally, add back our dependent variable **classe**.
+```{r}
+numCols <- sapply(train1, is.numeric)
+train2<-cbind(train1$classe,train1[,numCols])
+colnames(train2)[1]<-"classe"
+train2<-train2[,-c(2:5)]
+```
+
+**Create test and train sets: (for cross-validation)**
+
+```{r}
+library(caret)
+inTrain<- createDataPartition(y=train2$classe, p=0.75, list=FALSE) 
+trainset<-train2[inTrain,]
+testset<-train2[-inTrain,] 
+```
+## Model
+We expect the out-of-sample error to be estimated by the OOB estimate of error rate given from our Random Forest model. This is because each tree is constructed using a different bootstrap sample, as explained here: http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr.
+
+```{r}
+library(randomForest)
+fit1<-randomForest(classe~.,data=trainset)
+print(fit1)
+```
+**Estimated Out-Of-Sample Error Rate: Varies between 0.39%-0.50% on each run**
+
+##Cross-Validation
+Cross-validating against my created testing data to get a closer estimate of out-of-sample error:
+```{r}
+pred1<-predict(fit1,newdata=testset)
+confusionMatrix(pred1,testset$classe) 
+```
+**Cross-Validation Out-Of-Sample Error Rate: Varies between .004 and .006 on each run (1-Accuracy)**
+
+##Variable Importance, Plot Top 20 Variables:
+```{r}
+imp<-importance(fit1)
+imp2<-imp[order(imp, decreasing=TRUE),]
+imp2.df<-data.frame(imp2)
+par(las=2) 
+par(mar=c(5,8,4,2)) 
+barplot(imp2.df$imp2[20:1], horiz=TRUE, main="Importance of Variables",  
+        names.arg=row.names(imp2.df)[20:1], 
+        border="blue", density=c(20:1),cex.names=0.8)
+```
+
+##Predict 20 observation test dataset
+```{r}
+pred2<-predict(fit1,newdata=testing)
+```
+**100% accuracy achieved.** 
+(Results not displayed to avoid giving away answers to future students)
