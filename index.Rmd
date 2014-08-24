@@ -11,7 +11,7 @@ We attempt to answer one question:
 
 In order to accomplish this we apply Random Forest modeling to the Weight Lifting Exercise Dataset available at http://groupware.les.inf.puc-rio.br/har. This model was decided to be the best by the original authors of the data, who state that, "because of the characteristic noise in the sensor data, we used a Random Forest approach." (http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf)
 
-By doing appropriate pre-processing and using a random forest model we were able to achieve **99.6% accuracy on a self-created testing dataset, and 100% accuracy on the 20 assigned test datapoints.**
+By doing appropriate pre-processing and using a random forest model we were able to achieve **99.6% accuracy on a self-created testing dataset, and 100% accuracy on the assigned 20-observation test dataset.**
 
 ##Pre-Processing
 Read in the data:
@@ -50,7 +50,7 @@ inTrain<- createDataPartition(y=train2$classe, p=0.75, list=FALSE)
 trainset<-train2[inTrain,]
 testset<-train2[-inTrain,] 
 ```
-## Model
+## Model, Out-Of-Sample Error Estimation
 We expect the out-of-sample error to be estimated by the OOB estimate of error rate given from our Random Forest model. This is because each tree is constructed using a different bootstrap sample, as explained here: http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr.
 
 ```{r}
@@ -58,9 +58,9 @@ library(randomForest)
 fit1<-randomForest(classe~.,data=trainset)
 print(fit1)
 ```
-**Estimated Out-Of-Sample Error Rate: Varies between 0.39%-0.50% on each run**
+**Estimated Out-Of-Sample Error Rate: Varies between 0.39%-0.51% on each run**
 
-##Cross-Validation
+##Cross-Validation, Out-Of-Sample Error
 Cross-validating against my created testing data to get a closer estimate of out-of-sample error:
 ```{r}
 pred1<-predict(fit1,newdata=testset)
